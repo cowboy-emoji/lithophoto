@@ -86,13 +86,13 @@ fn get_pixel_brightness(r: u8, g: u8, b: u8) -> f32 {
     brightness / 255.0
 }
 
-fn image_to_mesh(img: &DynamicImage, mesh_width: f32, mesh_thickness: f32) -> Mesh {
+fn image_to_mesh(img: &DynamicImage, mesh_width: f32, mesh_thickness: f32, contrast: f32) -> Mesh {
     let mut mesh = Mesh::new();
 
     let (width, height) = img.dimensions();
 
     let brightness_to_mm =
-        |brightness: f32| mesh_thickness - (brightness * 0.5f32 * mesh_thickness);
+        |brightness: f32| mesh_thickness - (brightness * contrast * mesh_thickness);
 
     let pixel_coord_to_mm = |val| val as f32 * mesh_width / (width as f32);
     let get_thickness_vec3 = |x, y| {
@@ -327,6 +327,15 @@ fn main() {
                 .takes_value(true)
                 .default_value("10"),
         )
+        .arg(
+            Arg::with_name("contrast")
+                .short("c")
+                .long("contrast")
+                .value_name("CONTRAST")
+                .help("Value between 0 and 1 controlling how much of the thickness is exposed.")
+                .takes_value(true)
+                .default_value("0.5"),
+        )
         
         .get_matches();
 
@@ -335,6 +344,7 @@ fn main() {
     let output_path = matches.value_of("output").unwrap();
     let width = matches.value_of("width").unwrap().parse::<f32>().unwrap();
     let thickness = matches.value_of("thickness").unwrap().parse::<f32>().unwrap();
+    let contrast = matches.value_of("contrast").unwrap().parse::<f32>().unwrap();
     // Load image
     let image = image::open(input_path).unwrap();
 
@@ -342,7 +352,7 @@ fn main() {
     let mesh_width = width;
 
     // Generate mesh
-    let mesh = image_to_mesh(&image, mesh_width, thickness);
+    let mesh = image_to_mesh(&image, mesh_width, thickness, contrast);
 
     // Write STL file
     let mut output_file = File::create(output_path).unwrap();
